@@ -20,6 +20,7 @@ export function ZoomableContent({ children }: ZoomableContentProps) {
     <div
       style={{
         transform: transformationValue,
+        transformOrigin: "0 0",
       }}
       className="border"
     >

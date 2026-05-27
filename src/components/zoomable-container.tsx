@@ -28,8 +28,9 @@ export function ZoomableContainer({
 
   const zoomIn = () => {
     setTransform((transform) => ({
-      ...transform,
       scale: Math.min(transform.scale + 0.25, maxZoom),
+      x: 0,
+      y: 0,
     }));
   };
 
@@ -37,6 +38,8 @@ export function ZoomableContainer({
     setTransform((transform) => ({
       ...transform,
       scale: Math.max(transform.scale - 0.25, minZoom),
+      y: 0,
+      x: 0,
     }));
   };
 
@@ -44,6 +47,8 @@ export function ZoomableContainer({
     setTransform((transform) => ({
       ...transform,
       scale: 1,
+      x: 0,
+      y: 0,
     }));
   };
 
