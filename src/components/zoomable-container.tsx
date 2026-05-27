@@ -1,26 +1,9 @@
+import ZoomProvider, {
+  type Transform,
+  type ZoomableContextProps,
+} from "../context/zoom-context";
 import { Minus, Plus, RotateCcw } from "lucide-react";
-import { createContext, useContext, useMemo, useState } from "react";
-
-type ZoomableContextProps = {
-  scale: number;
-  maxZoom: number;
-  minZoom: number;
-
-  zoomIn: () => void;
-  zoomOut: () => void;
-  resetZoom: () => void;
-};
-
-const ZoomContext = createContext<ZoomableContextProps | null>(null);
-
-export function useZoom() {
-  const context = useContext(ZoomContext);
-
-  if (!context)
-    throw new Error("useZoom should be used within the ZoomWrapper");
-
-  return context;
-}
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type ZoomableContainerProps = {
   maxZoom?: number;
@@ -28,33 +11,94 @@ type ZoomableContainerProps = {
   showControls?: boolean;
   children: React.ReactNode;
 };
+
 export function ZoomableContainer({
   children,
   maxZoom = 5,
   minZoom = 1,
   showControls = true,
 }: ZoomableContainerProps) {
-  const [scale, setScale] = useState<number>(1);
+  const [transform, setTransform] = useState<Transform>({
+    scale: 1,
+    x: 0,
+    y: 0,
+  });
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const zoomIn = () => {
-    setScale((scale) => Math.min(scale + 0.25, maxZoom));
+    setTransform((transform) => ({
+      ...transform,
+      scale: Math.min(transform.scale + 0.25, maxZoom),
+    }));
   };
 
   const zoomOut = () => {
-    setScale((scale) => Math.max(scale - 0.25, minZoom));
+    setTransform((transform) => ({
+      ...transform,
+      scale: Math.max(transform.scale - 0.25, minZoom),
+    }));
   };
 
   const resetZoom = () => {
-    setScale(1);
+    setTransform((transform) => ({
+      ...transform,
+      scale: 1,
+    }));
   };
 
   const contextValue = useMemo<ZoomableContextProps>(() => {
-    return { maxZoom, minZoom, zoomIn, zoomOut, resetZoom, scale };
-  }, [scale, minZoom, maxZoom]);
+    return { maxZoom, minZoom, zoomIn, zoomOut, resetZoom, transform };
+  }, [transform, minZoom, maxZoom]);
+
+  // prevent the ctrl + wheel event from zooming in the container
+  useEffect(() => {
+    const el = containerRef.current;
+
+    if (!el) return;
+
+    // handle wheel
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+
+      e.preventDefault();
+
+      const delta = -e.deltaY;
+      const zoomFactor = 0.0001;
+
+      // translation calculation
+      const rect = el.getBoundingClientRect();
+
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientX - rect.top;
+
+      setTransform((transform) => {
+        const newScale = Math.min(
+          Math.max(transform.scale + zoomFactor * delta, minZoom),
+          maxZoom,
+        );
+
+        const ratio = 1 - newScale / transform.scale;
+
+        return {
+          scale: newScale,
+          x: transform.x + (mouseX - transform.x) * ratio,
+          y: transform.y + (mouseY - transform.y) * ratio,
+        };
+      });
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [maxZoom, minZoom]);
 
   return (
-    <ZoomContext.Provider value={contextValue}>
-      <div className="w-full h-full overflow-hidden relative">
+    <ZoomProvider contextValue={contextValue}>
+      <div
+        className="w-full h-full overflow-hidden relative"
+        ref={containerRef}
+      >
         {children}
 
         {/* controls */}
@@ -66,12 +110,15 @@ export function ZoomableContainer({
             <button onClick={zoomOut} className="rounded-full p-2 bg-gray-400">
               <Minus />
             </button>
-            <button onClick={resetZoom} className="rounded-full p-2 bg-gray-400">
+            <button
+              onClick={resetZoom}
+              className="rounded-full p-2 bg-gray-400"
+            >
               <RotateCcw />
             </button>
           </div>
         )}
       </div>
-    </ZoomContext.Provider>
+    </ZoomProvider>
   );
 }

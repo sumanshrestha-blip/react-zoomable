@@ -1,21 +1,26 @@
+import { useZoom } from "../context/zoom-context";
 import { getZoomTransformation } from "../utils/getZoomTransformation";
-import { useZoom } from "./zoomable-container";
 
 type ZoomableContentProps = {
   children: React.ReactNode;
 };
 
 export function ZoomableContent({ children }: ZoomableContentProps) {
-  const { scale } = useZoom();
+  const {
+    transform: { scale, x, y },
+  } = useZoom();
 
-  const transformationValue = getZoomTransformation({ scale });
+  const transformationValue = getZoomTransformation({
+    scale,
+    translateX: x,
+    translateY: y,
+  });
 
   return (
     <div
       style={{
         transform: transformationValue,
       }}
-
       className="border"
     >
       {children}

@@ -9,5 +9,5 @@ export function getZoomTransformation({
   translateX = 0,
   translateY = 0,
 }: GetZoomTransformationProps) {
-  return `scale(${scale}) translateX(${translateX}) translateY(${translateY})`;
+  return `translate(${translateX}px, ${translateY}px) scale(${scale})`;
 }
